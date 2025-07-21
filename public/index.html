@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Inventario</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input, select, button { margin: 5px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>Inventario</h1>
+
+  <input type="text" id="buscar" placeholder="Buscar producto">
+  <table id="tabla">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Tipo</th>
+        <th>Precio</th>
+        <th>Cantidad</th>
+        <th>Mano Apertura</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>Agregar producto</h2>
+  <input id="nombre" placeholder="Nombre">
+  <select id="tipo">
+    <option value="puerta">Puerta</option>
+    <option value="ventana">Ventana</option>
+  </select>
+  <input id="precio" placeholder="Precio" type="number">
+  <input id="cantidad" placeholder="Cantidad" type="number">
+  <input id="mano" placeholder="Mano de apertura (solo puertas)">
+  <button onclick="agregar()">Agregar</button>
+
+  <script>
+    async function cargar() {
+      const res = await fetch('/api/productos');
+      const productos = await res.json();
+      const filtro = document.getElementById('buscar').value.toLowerCase();
+      const tbody = document.querySelector('tbody');
+      tbody.innerHTML = '';
+
+      productos
+        .filter(p => p.nombre.toLowerCase().includes(filtro))
+        .forEach(p => {
+          const fila = document.createElement('tr');
+          fila.innerHTML = \`
+            <td>\${p.nombre}</td>
+            <td>\${p.tipo}</td>
+            <td>$\${p.precio}</td>
+            <td>\${p.cantidad}</td>
+            <td>\${p.tipo === 'puerta' ? p.mano_apertura : '-'}</td>
+            <td>
+              <button onclick="actualizar(\${p.id}, \${p.cantidad + 1})">+</button>
+              <button onclick="actualizar(\${p.id}, \${p.cantidad - 1})">-</button>
+            </td>
+          \`;
+          tbody.appendChild(fila);
+        });
+    }
+
+    async function actualizar(id, nuevaCantidad) {
+      await fetch(\`/api/productos/\${id}\`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cantidad: nuevaCantidad })
+      });
+      cargar();
+    }
+
+    async function agregar() {
+      const nombre = document.getElementById('nombre').value;
+      const tipo = document.getElementById('tipo').value;
+      const precio = parseFloat(document.getElementById('precio').value);
+      const cantidad = parseInt(document.getElementById('cantidad').value);
+      const mano = document.getElementById('mano').value;
+
+      await fetch('/api/productos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, tipo, precio, cantidad, mano_apertura: mano })
+      });
+
+      document.getElementById('nombre').value = '';
+      document.getElementById('precio').value = '';
+      document.getElementById('cantidad').value = '';
+      document.getElementById('mano').value = '';
+
+      cargar();
+    }
+
+    document.getElementById('buscar').addEventListener('input', cargar);
+    window.onload = cargar;
+  </script>
+</body>
+</html>
+Crear carpeta public y agregar index.html
